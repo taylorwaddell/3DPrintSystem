@@ -82,8 +82,8 @@ def submit():
 
 @app.route('/approve', methods=['POST'])
 def approve():
-    job_id = request.form.get('job_id')
-    job = Job.query.get_or_404(int(job_id))
+    job_uuid = request.form.get('job_uuid')
+    job = Job.query.get_or_404(int(job_uuid))
     job.weight = float(request.form.get('weight', 0))
     job.time_hours = int(request.form.get('time_hours', 0))
     job.time_minutes = int(request.form.get('time_minutes', 0))
@@ -101,7 +101,7 @@ def approve():
     job.status = PENDING_FOLDER
     db.session.commit()
     # Send confirmation email to student
-    link = url_for('confirm_print', job_id=job.id, _external=True)
+    link = url_for('confirm_print', job_uuid=job.uuid, _external=True)
     body = f"""Your print request is almost ready. Please confirm here:
 
 {link}
@@ -113,9 +113,9 @@ Material: {job.material or 'N/A'}"""
     send_email(job.email, "Confirm your 3D print request", body)
     return jsonify(success=True)
 
-@app.route('/confirm_print/<int:job_id>', methods=['GET', 'POST'])
-def confirm_print(job_id):
-    job = Job.query.get_or_404(job_id)
+@app.route('/confirm_print/<int:job_uuid>', methods=['GET', 'POST'])
+def confirm_print(job_uuid):
+    job = Job.query.get_or_404(job_uuid)
     if job.student_confirmed:
         return render_template('Confirmation/confirmation_already.html', job=job)
     if request.method == 'POST':
@@ -132,8 +132,8 @@ def confirm_print(job_id):
 
 @app.route('/reject', methods=['POST'])
 def reject():
-    job_id = request.form.get('job_id')
-    job = Job.query.get_or_404(int(job_id))
+    job_uuid = request.form.get('job_uuid')
+    job = Job.query.get_or_404(int(job_uuid))
     reasons = request.form.getlist('reasons')
     job.rejection_reasons = '; '.join(reasons)
     src = os.path.join(JOBS_ROOT, UPLOADED_FOLDER, job.filename)
@@ -146,9 +146,9 @@ def reject():
     send_email(job.email, "Your print request was rejected", body)
     return jsonify(success=True)
 
-@app.route('/move/<int:job_id>/<to_status>', methods=['POST'])
-def move(job_id, to_status):
-    job = Job.query.get_or_404(job_id)
+@app.route('/move/<int:job_uuid>/<to_status>', methods=['POST'])
+def move(job_uuid, to_status):
+    job = Job.query.get_or_404(job_uuid)
     src = os.path.join(JOBS_ROOT, job.status, job.filename)
     dst = os.path.join(JOBS_ROOT, to_status, job.filename)
     with filelock.FileLock(src + '.lock'):

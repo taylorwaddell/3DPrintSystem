@@ -15,7 +15,7 @@
       <p><strong>Color:</strong> {{ job.color or 'N/A' }}</p>
       <p><strong>Material:</strong> {{ job.material or 'N/A' }}</p>
     </div>
-    <form method="post" action="{{ url_for('confirm_print', job_id=job.id) }}">
+    <form method="post" action="{{ url_for('confirm_print', job_uuid=job.uuid) }}">
       <button type="submit"
               class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-semibold">
         Confirm Print

@@ -88,7 +88,7 @@
                   {% endif %}
 
                   <!-- Open File -->
-                  <a href="{{ url_for('open_file', job_id=file.id) }}"
+                  <a href="{{ url_for('open_file', job_uuid=file.id) }}"
                      target="_blank"
                      class="text-blue-700 hover:underline text-sm">
                     Open File
@@ -158,7 +158,7 @@
           if (!confirm('Are you sure you want to approve?')) return;
           const id = btn.dataset.jobId;
           const data = new FormData();
-          data.append('job_id', id);
+          data.append('job_uuid', id);
           data.append('weight', document.querySelector(`.weight-input[data-job-id="${id}"]`).value);
           data.append('material', document.querySelector(`.material-select[data-job-id="${id}"]`).value);
           data.append('time', document.querySelector(`.time-input[data-job-id="${id}"]`).value);
@@ -184,7 +184,7 @@
         if (!reasons.length) { alert('Select at least one reason'); return; }
         if (!confirm('Are you sure you want to reject?')) return;
         const data = new FormData();
-        data.append('job_id', currentRejectId);
+        data.append('job_uuid', currentRejectId);
         reasons.forEach(r => data.append('reasons', r));
         fetch('/reject', { method:'POST', body: data })
           .then(res => res.ok && location.reload());

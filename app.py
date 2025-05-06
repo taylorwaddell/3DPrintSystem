@@ -1,5 +1,7 @@
 import os
 import shutil
+from uuid import UUID
+import uuid
 from flask import Flask, render_template, request, url_for, redirect, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from filelock import FileLock
@@ -36,6 +38,7 @@ for folder in [
 
 class Job(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    uuid = db.Column(UUID(as_uuid=True), default=uuid.uuid4)
     filename = db.Column(db.String, nullable=False)
     name = db.Column(db.String, nullable=False)
     email = db.Column(db.String, nullable=False)
@@ -89,8 +92,8 @@ def submit():
 
 @app.route('/approve', methods=['POST'])
 def approve():
-    job_id = request.form.get('job_id')
-    job = Job.query.get_or_404(int(job_id))
+    job_uuid = request.form.get('job_uuid')
+    job = Job.query.get_or_404(int(job_uuid))
 
     job.weight = float(request.form.get('weight', 0))
     job.time_hours = int(request.form.get('time_hours', 0))
@@ -111,7 +114,7 @@ def approve():
     db.session.commit()
 
     # Send confirmation email to student
-    link = url_for('confirm_print', job_id=job.id, _external=True)
+    link = url_for('confirm_print', job_uuid=job.uuid, _external=True)
     body = f"""Your print request is almost ready. Please confirm here:
 
 {link}
@@ -123,9 +126,9 @@ Material: {job.material or 'N/A'}"""
     send_email(job.email, "Confirm your 3D print request", body)
     return redirect(url_for('dashboard'))
 
-@app.route('/confirm_print/<int:job_id>', methods=['GET', 'POST'])
-def confirm_print(job_id):
-    job = Job.query.get_or_404(job_id)
+@app.route('/confirm_print/<int:job_uuid>', methods=['GET', 'POST'])
+def confirm_print(job_uuid):
+    job = Job.query.get_or_404(job_uuid)
     if job.student_confirmed:
         return render_template('Confirmation/confirmation_already.html', job=job)
     if request.method == 'POST':
@@ -143,8 +146,8 @@ def confirm_print(job_id):
 
 @app.route('/reject', methods=['POST'])
 def reject():
-    job_id = request.form.get('job_id')
-    job = Job.query.get_or_404(int(job_id))
+    job_uuid = request.form.get('job_uuid')
+    job = Job.query.get_or_404(int(job_uuid))
     reasons = request.form.getlist('reasons')
     job.rejection_reasons = '; '.join(reasons)
 
@@ -160,9 +163,9 @@ def reject():
     send_email(job.email, "Your print request was rejected", body)
     return jsonify(success=True)
 
-@app.route('/move/<int:job_id>/<to_status>', methods=['POST'])
-def move(job_id, to_status):
-    job = Job.query.get_or_404(job_id)
+@app.route('/move/<int:job_uuid>/<to_status>', methods=['POST'])
+def move(job_uuid, to_status):
+    job = Job.query.get_or_404(job_uuid)
     src = os.path.join(JOBS_ROOT, job.status, job.filename)
     dst = os.path.join(JOBS_ROOT, to_status, job.filename)
     with FileLock(src + '.lock'):
@@ -173,9 +176,9 @@ def move(job_id, to_status):
 
 from flask import send_file, abort
 
-@app.route('/open_file/<int:job_id>')
-def open_file(job_id):
-    job = Job.query.get_or_404(job_id)
+@app.route('/open_file/<int:job_uuid>')
+def open_file(job_uuid):
+    job = Job.query.get_or_404(job_uuid)
     # Build path to the file in its current status folder
     path = os.path.join(JOBS_ROOT, job.status, job.filename)
     if not os.path.exists(path):
