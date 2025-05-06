@@ -2,7 +2,7 @@ import os
 import shutil
 from uuid import UUID
 import uuid
-from flask import Flask, render_template, request, url_for, redirect, jsonify
+from flask import Flask, render_template, request, url_for, redirect, jsonify, abort
 from flask_sqlalchemy import SQLAlchemy
 from filelock import FileLock
 from email_util import send_email
@@ -93,12 +93,16 @@ def submit():
 @app.route('/approve', methods=['POST'])
 def approve():
     job_uuid = request.form.get('job_uuid')
-    job = Job.query.get_or_404(int(job_uuid))
+    try:
+        job = Job.query.filter_by(uuid=uuid.UUID(job_uuid)).first_or_404()
+    except (ValueError):
+        abort(404)
 
     job.weight = float(request.form.get('weight', 0))
     job.time_hours = int(request.form.get('time_hours', 0))
     job.time_minutes = int(request.form.get('time_minutes', 0))
     job.printer = request.form.get('printer')
+
     # Calculate cost
     if job.printer and 'formlabs' in job.printer.lower():
         job.cost = job.weight * 0.20
